@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>極簡黑白高對比課表 (雙軌穩定版)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Excel (XLSX) 解析與匯出函式庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --course-font-size: 26px;
+      --teacher-font-size: 14px;
+      --border-black: #000000;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F8FAFC;
+      margin: 0;
+      padding: 0;
+      color: #000000;
+    }
+
+    /* 滿版 A4 容器 (等比自適應) */
+    .timetable-wrapper {
+      width: 100%;
+      max-width: 880px;
+      height: 96vh;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      background-color: #FFFFFF;
+    }
+
+    /* 純黑白高對比實線表格 */
+    .minimal-table {
+      width: 100%;
+      height: 100%;
+      border-collapse: collapse !important;
+      border-spacing: 0 !important;
+      empty-cells: show !important;
+      table-layout: fixed;
+      background-color: #FFFFFF;
+    }
+
+    /* 強制所有表頭與儲存格具備清晰的 2px 純黑實線 */
+    .minimal-table th,
+    .minimal-table td {
+      border: 2px solid var(--border-black) !important;
+      text-align: center;
+      vertical-align: middle;
+      box-sizing: border-box;
+    }
+
+    /* 表格外框加強 */
+    .table-container {
+      border: 2.5px solid var(--border-black);
+      border-radius: 6px;
+      overflow: hidden;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      background-color: #FFFFFF;
+    }
+
+    /* 螢幕預覽高度配置 */
+    .header-row, .header-row th { height: 42px; }
+    .morning-row, .morning-row td { height: 32px; }
+    .lunch-row, .lunch-row td { height: 30px; }
+    .period-row, .period-row td { height: calc((100% - 104px) / 8); }
+
+    /* 儲存格互動 */
+    .course-cell {
+      cursor: text;
+      transition: background-color 0.15s ease;
+      padding: 2px;
+      vertical-align: middle;
+      background-color: #FFFFFF;
+    }
+    .course-cell:hover {
+      background-color: #F8FAFC;
+    }
+
+    .cell-content-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      gap: 1px;
+      background: transparent !important;
+    }
+
+    .course-title,
+    .course-title *,
+    .teacher-title,
+    .teacher-title * {
+      background: transparent !important;
+      background-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* 科目字型：極黑特粗體 */
+    .course-title {
+      font-size: var(--course-font-size);
+      font-weight: 900;
+      color: #000000;
+      line-height: 1.22;
+      letter-spacing: 0.04em;
+      min-height: 30px;
+      outline: none;
+      word-break: break-word;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      transition: font-size 0.2s ease;
+    }
+
+    /* 老師 / 班級字型：清爽黑色細體 */
+    .teacher-title {
+      font-size: var(--teacher-font-size);
+      font-weight: 600;
+      color: #374151;
+      line-height: 1.2;
+      min-height: 18px;
+      outline: none;
+      word-break: break-word;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      letter-spacing: 0.03em;
+      transition: font-size 0.2s ease;
+    }
+
+    /* 切換至「純科目」模式時自動隱藏第二行 */
+    body.subject-only-mode .teacher-title {
+      display: none !important;
+    }
+    body.subject-only-mode .course-title {
+      min-height: 48px;
+    }
+
+    .course-title[data-placeholder]:empty:before {
+      content: attr(data-placeholder);
+      color: #9CA3AF;
+      pointer-events: none;
+      font-weight: 500;
+      font-size: 16px;
+    }
+
+    .teacher-title[data-placeholder]:empty:before {
+      content: attr(data-placeholder);
+      color: #D1D5DB;
+      pointer-events: none;
+      font-weight: 400;
+      font-size: 12px;
+    }
+
+    /* A4 列印核心設定 */
+    @page {
+      size: A4 portrait;
+      margin: 6mm 7mm;
+    }
+
+    @media print {
+      html, body {
+        width: 100% !important;
+        height: 100% !important;
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      [data-placeholder]:empty:before {
+        display: none !important;
+      }
+
+      .timetable-wrapper {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 282mm !important;
+        max-height: 282mm !important;
+        padding: 5mm 7mm !important;
+        margin: 0 auto !important;
+        border: 2.5px solid #000000 !important;
+        border-radius: 6px !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        box-sizing: border-box !important;
+        background-color: #FFFFFF !important;
+      }
+
+      .table-container {
+        height: auto !important;
+        flex: 1 1 auto !important;
+        border: 2.5px solid #000000 !important;
+        border-radius: 4px !important;
+        overflow: visible !important;
+        background-color: #FFFFFF !important;
+      }
+
+      .minimal-table {
+        height: 100% !important;
+        table-layout: fixed !important;
+        border-collapse: collapse !important;
+      }
+
+      .minimal-table th,
+      .minimal-table td {
+        border: 2px solid #000000 !important;
+        background-color: #FFFFFF !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .course-cell,
+      .course-cell:hover,
+      .cell-content-box,
+      .course-title,
+      .course-title *,
+      .teacher-title,
+      .teacher-title * {
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+      }
+
+      .header-row, .header-row th {
+        height: 10mm !important;
+        max-height: 10mm !important;
+      }
+
+      .morning-row, .morning-row td {
+        height: 7.5mm !important;
+        max-height: 7.5mm !important;
+      }
+
+      .lunch-row, .lunch-row td {
+        height: 7.5mm !important;
+        max-height: 7.5mm !important;
+      }
+
+      .period-row, .period-row td {
+        height: 28mm !important;
+        max-height: 28mm !important;
+        box-sizing: border-box !important;
+      }
+
+      .course-title {
+        font-size: var(--course-font-size) !important;
+        color: #000000 !important;
+      }
+
+      .teacher-title {
+        font-size: var(--teacher-font-size) !important;
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-2 md:p-5 flex flex-col items-center justify-start">
+
+  <!-- 頂部操作工具列 -->
+  <header class="w-full max-w-[880px] mb-2.5 no-print flex flex-wrap items-center justify-between gap-2.5 bg-white px-4 md:px-5 py-2.5 rounded-xl shadow-sm border border-slate-300">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-2.5 h-6 bg-black rounded-xs"></div>
+      <div>
+        <h1 class="font-bold text-sm md:text-base text-black tracking-tight">極簡黑白高對比課表</h1>
+        <p class="text-[11px] text-slate-500">支援【Excel 檔案一鍵匯入】與【AI 拍照辨識】雙軌功能</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center flex-wrap gap-2">
+      <!-- 隱藏的檔案輸入框 (點擊時自動清空，保證連續匯入同檔名正常) -->
+      <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+      <input type="file" id="excelInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
+
+      <!-- 軌道 A：Excel / CSV 匯入 -->
+      <button onclick="triggerExcelUpload()" class="text-xs px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-black font-semibold transition border border-slate-400 flex items-center gap-1 shadow-xs" title="免 Key！直接匯入由 AI 產生的課表 Excel/CSV 檔案">
+        <span>📂</span>
+        <span>匯入 Excel</span>
+      </button>
+
+      <!-- 匯出 Excel 備份 -->
+      <button onclick="exportToExcel()" class="text-xs px-2 py-1.5 rounded-md bg-white hover:bg-slate-100 text-slate-800 font-medium transition border border-slate-300 flex items-center gap-1" title="將目前的課表內容匯出為 Excel 檔案">
+        <span>📥</span>
+        <span>匯出</span>
+      </button>
+
+      <!-- 軌道 B：AI 匯入照片 -->
+      <button onclick="triggerPhotoUpload()" class="text-xs px-2.5 py-1.5 rounded-md bg-slate-50 hover:bg-slate-100 text-black font-semibold transition border border-slate-300 flex items-center gap-1 shadow-xs" title="使用 Gemini API 拍照辨識課表">
+        <svg class="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <span>AI 拍照</span>
+      </button>
+
+      <!-- 設定 Key -->
+      <button onclick="openApiKeyModal()" class="text-xs px-2 py-1.5 rounded-md bg-white hover:bg-slate-100 text-slate-700 font-medium transition border border-slate-300 flex items-center gap-1" title="設定 Gemini API Key">
+        <span>⚙️</span>
+        <span id="apiKeyBtnText">Key</span>
+      </button>
+
+      <!-- 模式切換鈕 -->
+      <button id="modeToggleBtn" onclick="toggleDisplayMode()" class="text-xs px-2.5 py-1.5 rounded-md bg-white hover:bg-slate-100 text-black font-bold transition border border-black flex items-center gap-1">
+        <span id="modeIcon">📋</span>
+        <span id="modeText">純科目</span>
+      </button>
+
+      <!-- 字級微調器 -->
+      <div class="flex items-center bg-slate-50 rounded-md border border-slate-300 px-1.5 py-1 gap-1 text-xs">
+        <button onclick="adjustFontSize(-2)" title="縮小" class="w-5 h-5 flex items-center justify-center bg-white rounded border border-slate-300 hover:bg-slate-100 text-black font-bold">－</button>
+        <span id="fontSizeDisplay" class="font-mono font-bold text-black min-w-[30px] text-center">26px</span>
+        <button onclick="adjustFontSize(2)" title="放大" class="w-5 h-5 flex items-center justify-center bg-white rounded border border-slate-300 hover:bg-slate-100 text-black font-bold">＋</button>
+      </div>
+
+      <!-- 清空按鈕 -->
+      <button onclick="clearAllCells()" class="text-xs px-2 py-1.5 rounded-md bg-white hover:bg-slate-100 text-slate-700 font-medium transition border border-slate-300">
+        清空
+      </button>
+
+      <!-- 列印按鈕 -->
+      <button onclick="printTable()" class="text-xs px-3.5 py-1.5 rounded-md bg-black hover:bg-zinc-800 text-white font-bold shadow-xs transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+        <span>列印</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 課表主卡片容器 -->
+  <main id="timetable-card" class="timetable-wrapper p-3 md:p-4 shadow-md border-2 border-black relative">
+    
+    <header class="flex items-end justify-between px-2 pt-1 pb-2 border-b-2 border-black mb-2">
+      <div>
+        <div class="text-[9px] tracking-[0.3em] text-slate-500 font-bold uppercase font-mono">Weekly Class Schedule</div>
+        <h2 id="tableTitle" contenteditable="true" class="text-2xl md:text-3xl font-black text-black tracking-widest outline-none px-1 -ml-1">
+          課 程 表
+        </h2>
+      </div>
+      <div class="text-right">
+        <div class="text-[9px] tracking-widest text-slate-400 font-mono">SEMESTER SCHEDULE</div>
+        <div class="text-xs font-bold text-black font-mono">MONDAY - FRIDAY</div>
+      </div>
+    </header>
+
+    <div class="table-container">
+      <table class="minimal-table">
+        <thead>
+          <tr class="header-row text-xs md:text-sm font-bold text-black">
+            <th class="w-[17%]">
+              <div class="tracking-wider">時 間</div>
+              <div class="text-[9px] font-mono text-slate-500 font-normal">TIME</div>
+            </th>
+            <th class="w-[16.6%]">
+              <div class="tracking-wider">星期一</div>
+              <div class="text-[9px] font-mono text-slate-600 font-medium">MON</div>
+            </th>
+            <th class="w-[16.6%]">
+              <div class="tracking-wider">星期二</div>
+              <div class="text-[9px] font-mono text-slate-600 font-medium">TUE</div>
+            </th>
+            <th class="w-[16.6%]">
+              <div class="tracking-wider">星期三</div>
+              <div class="text-[9px] font-mono text-slate-600 font-medium">WED</div>
+            </th>
+            <th class="w-[16.6%]">
+              <div class="tracking-wider">星期四</div>
+              <div class="text-[9px] font-mono text-slate-600 font-medium">THU</div>
+            </th>
+            <th class="w-[16.6%]">
+              <div class="tracking-wider">星期五</div>
+              <div class="text-[9px] font-mono text-slate-600 font-medium">FRI</div>
+            </th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <!-- 早自習 / 升旗朝會 -->
+          <tr class="morning-row">
+            <td class="font-bold text-black px-1 font-mono text-[11px] md:text-xs">
+              07:45~08:10
+            </td>
+            <td colspan="5" class="px-2 text-center text-black font-bold tracking-widest text-xs md:text-sm">
+              導 師 時 間 ／ 升 旗 朝 會
+            </td>
+          </tr>
+
+          <!-- 第一節至第八節 -->
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第一節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">08:15~09:00</div>
+            </td>
+            <td class="course-cell" data-period="1" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="1" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="1" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="1" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="1" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第二節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">09:10~09:55</div>
+            </td>
+            <td class="course-cell" data-period="2" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="2" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="2" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="2" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="2" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第三節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">10:10~10:55</div>
+            </td>
+            <td class="course-cell" data-period="3" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="3" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="3" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="3" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="3" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第四節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">11:05~11:50</div>
+            </td>
+            <td class="course-cell" data-period="4" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="4" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="4" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="4" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="4" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <!-- 用餐午休 -->
+          <tr class="lunch-row">
+            <td class="font-bold text-black px-1 font-mono text-[11px] md:text-xs">
+              11:50~12:55
+            </td>
+            <td colspan="5" class="px-2 text-center text-black font-bold tracking-wider text-xs md:text-sm">
+              <span class="font-mono">11:50~12:25</span> 用餐 <span class="mx-3 text-slate-400">|</span> <span class="font-mono">12:25~12:55</span> 午休
+            </td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第五節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">13:00~13:45</div>
+            </td>
+            <td class="course-cell" data-period="5" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="5" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="5" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="5" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="5" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第六節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">13:55~14:40</div>
+            </td>
+            <td class="course-cell" data-period="6" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="6" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="6" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="6" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="6" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第七節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">14:55~15:40</div>
+            </td>
+            <td class="course-cell" data-period="7" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="7" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="7" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="7" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="7" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+
+          <tr class="period-row">
+            <td class="px-1 py-1">
+              <span class="inline-block border border-black text-black font-extrabold text-[11px] md:text-xs px-2 py-0.5 rounded-sm mb-0.5 tracking-wider">第八節</span>
+              <div class="text-[10px] md:text-xs text-slate-600 font-mono font-semibold">15:45~16:30</div>
+            </td>
+            <td class="course-cell" data-period="8" data-day="mon"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="8" data-day="tue"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="8" data-day="wed"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="8" data-day="thu"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+            <td class="course-cell" data-period="8" data-day="fri"><div class="cell-content-box"><div class="course-title" contenteditable="true" data-placeholder="科目"></div><div class="teacher-title" contenteditable="true" data-placeholder="班級/老師"></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- 設定 API Key 彈窗 -->
+  <div id="apiKeyModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full shadow-xl border border-black">
+      <h3 class="text-base font-bold text-black mb-1">設定 Gemini API 金鑰</h3>
+      <p class="text-xs text-slate-500 mb-4 leading-relaxed">金鑰保存在您的瀏覽器中，僅供拍照辨識使用。若使用 Excel 匯入則不需設定。</p>
+      <input type="password" id="apiKeyInput" placeholder="請貼上 API Key (AIzaSy...)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded outline-none focus:border-black mb-4">
+      <div class="flex justify-end gap-2">
+        <button onclick="closeApiKeyModal()" class="px-4 py-1.5 rounded border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50">取消</button>
+        <button onclick="saveApiKey()" class="px-4 py-1.5 rounded bg-black hover:bg-zinc-800 text-white text-xs font-bold shadow-xs">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 辨識中遮罩彈窗 -->
+  <div id="loadingModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg p-6 shadow-xl border border-black flex flex-col items-center max-w-sm text-center mx-4">
+      <div class="w-8 h-8 border-3 border-slate-300 border-t-black rounded-full animate-spin mb-3"></div>
+      <h3 class="font-bold text-sm text-black mb-1">正在辨識課表圖片...</h3>
+      <p class="text-xs text-slate-600 leading-relaxed">使用 gemini-3.6-flash 分析各節次中，請稍候幾秒鐘...</p>
+    </div>
+  </div>
+
+  <!-- 提示訊息彈窗 -->
+  <div id="messageModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl border border-black text-center">
+      <h3 id="modalTitle" class="text-base font-bold text-black mb-1">提示</h3>
+      <p id="modalBody" class="text-xs text-slate-600 mb-5 leading-relaxed whitespace-pre-line text-left break-all"></p>
+      <button onclick="closeModal()" class="px-6 py-1.5 bg-black hover:bg-zinc-800 text-white font-bold rounded text-xs transition">
+        確定
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let currentCourseSize = 26;
+    let isSubjectOnly = false;
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+    // 1. API Key 管理與狀態更新
+    function updateKeyBtnUI() {
+      const key = localStorage.getItem('gemini_api_key') || '';
+      const btnText = document.getElementById('apiKeyBtnText');
+      if (key.trim()) {
+        btnText.textContent = "Key✓";
+        btnText.parentElement.classList.add('bg-slate-100', 'font-bold', 'text-black');
+      } else {
+        btnText.textContent = "Key";
+        btnText.parentElement.classList.remove('bg-slate-100', 'font-bold');
+      }
+    }
+    updateKeyBtnUI();
+
+    function openApiKeyModal() {
+      document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key') || '';
+      document.getElementById('apiKeyModal').classList.remove('hidden');
+    }
+    function closeApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!key) {
+        localStorage.removeItem('gemini_api_key');
+        showModal('已清除', '已移除儲存的 API Key。');
+      } else {
+        localStorage.setItem('gemini_api_key', key);
+        showModal('儲存成功', 'API Key 已儲存至瀏覽器！');
+      }
+      closeApiKeyModal();
+      updateKeyBtnUI();
+    }
+
+    // 2. 管道 A：Excel / CSV 匯入與匯出 (免 Key，含連續選檔與防亂碼修復)
+    function triggerExcelUpload() {
+      const fileInput = document.getElementById('excelInput');
+      fileInput.value = ''; // 關鍵修復：每次觸發前清空，保證選同檔名一定觸發
+      fileInput.click();
+    }
+
+    function handleExcelUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          // 加入 codepage: 65001 確保 utf-8 與常見編碼不出現亂碼
+          const workbook = XLSX.read(data, { type: 'array', codepage: 65001 });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+          if (!rawRows || rawRows.length < 2) {
+            throw new Error("檔案內容為空或欄位格式不正確");
+          }
+
+          clearAllCells();
+
+          for (let i = 1; i < rawRows.length; i++) {
+            const row = rawRows[i];
+            const periodStr = String(row[0] || "");
+            const periodMatch = periodStr.match(/\d+/);
+            if (!periodMatch) continue;
+            const p = parseInt(periodMatch[0]);
+            if (p < 1 || p > 8) continue;
+
+            days.forEach((day, idx) => {
+              let cellText = String(row[idx + 1] || "").trim();
+              if (!cellText) return;
+
+              // 清洗全形/不換行空格，避免格式誤判
+              cellText = cellText.replace(/\u00a0/g, " ");
+
+              const parts = cellText.split(/[\n\r]+|\s{2,}/).map(s => s.trim()).filter(Boolean);
+              const subject = parts[0] || "";
+              const subText = parts[1] || "";
+
+              const cell = document.querySelector(`td[data-period="${p}"][data-day="${day}"]`);
+              if (cell) {
+                const titleEl = cell.querySelector('.course-title');
+                const subEl = cell.querySelector('.teacher-title');
+                if (titleEl) titleEl.textContent = subject;
+                if (subEl) subEl.textContent = subText;
+              }
+            });
+          }
+
+          sanitizeAllCells();
+          showModal('匯入成功', '已成功由檔案讀取並排入課表！');
+        } catch (err) {
+          showModal('匯入失敗', `無法讀取檔案內容：${err.message}\n請確認檔案格式是否正確。`);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function exportToExcel() {
+      const header = ["節次", "星期一", "星期二", "星期三", "星期四", "星期五"];
+      const rows = [header];
+
+      for (let p = 1; p <= 8; p++) {
+        const rowData = [`第 ${p} 節`];
+        days.forEach(day => {
+          const cell = document.querySelector(`td[data-period="${p}"][data-day="${day}"]`);
+          const subject = cell.querySelector('.course-title')?.textContent.trim() || "";
+          const sub = cell.querySelector('.teacher-title')?.textContent.trim() || "";
+          rowData.push(sub ? `${subject}\n${sub}` : subject);
+        });
+        rows.push(rowData);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "課表");
+      XLSX.writeFile(wb, "極簡黑白課表.xlsx");
+    }
+
+    // 3. 管道 B：AI 拍照上傳與辨識 (gemini-3.6-flash + 指數退避重試防斷線)
+    function triggerPhotoUpload() {
+      const key = localStorage.getItem('gemini_api_key') || '';
+      if (!key.trim()) {
+        showModal('請先設定 API Key', '拍照功能需要 Google Gemini API Key。\n請點擊右上角「⚙️ Key」設定；或改用「📂 匯入 Excel」免金鑰！');
+        return;
+      }
+      const fileInput = document.getElementById('photoInput');
+      fileInput.value = '';
+      fileInput.click();
+    }
+
+    async function fetchGeminiWithBackoff(payload, key) {
+      const delays = [1000, 2500, 5000];
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
+
+      for (let attempt = 0; attempt <= delays.length; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const errMsg = errData.error?.message || `狀態碼 ${response.status}`;
+            if (attempt < delays.length && response.status >= 500) {
+              await new Promise(res => setTimeout(res, delays[attempt]));
+              continue;
+            }
+            throw new Error(errMsg);
+          }
+
+          return await response.json();
+        } catch (err) {
+          if (attempt < delays.length && !err.message.includes('API_KEY_INVALID')) {
+            await new Promise(res => setTimeout(res, delays[attempt]));
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
+    async function handleImageUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const apiKey = (localStorage.getItem('gemini_api_key') || '').trim();
+      const loadingModal = document.getElementById('loadingModal');
+      loadingModal.classList.remove('hidden');
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
+
+        const prompt = `這是一張學校課表照片（可能是班級課表或教師個人課表）。
+請仔細辨識星期一至星期五、第一節到第八節的所有課程安排。
+- subject 填入科目名稱。
+- teacher 填入班級代號（如 701）或任課老師；若無則留空字串。
+請嚴格依據 JSON 結構輸出。`;
+
+        const payload = {
+          contents: [{
+            role: "user",
+            parts: [{ text: prompt }, { inlineData: { mimeType: mimeType, data: base64Data } }]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                schedule: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      period: { type: "INTEGER" },
+                      mon: { type: "OBJECT", properties: { subject: { type: "STRING" }, teacher: { type: "STRING" } } },
+                      tue: { type: "OBJECT", properties: { subject: { type: "STRING" }, teacher: { type: "STRING" } } },
+                      wed: { type: "OBJECT", properties: { subject: { type: "STRING" }, teacher: { type: "STRING" } } },
+                      thu: { type: "OBJECT", properties: { subject: { type: "STRING" }, teacher: { type: "STRING" } } },
+                      fri: { type: "OBJECT", properties: { subject: { type: "STRING" }, teacher: { type: "STRING" } } }
+                    },
+                    required: ["period"]
+                  }
+                }
+              },
+              required: ["schedule"]
+            }
+          }
+        };
+
+        const result = await fetchGeminiWithBackoff(payload, apiKey);
+        const data = JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
+        if (!data.schedule) throw new Error("結構分析失敗");
+
+        clearAllCells();
+        data.schedule.forEach(row => {
+          const p = row.period;
+          if (p >= 1 && p <= 8) {
+            days.forEach(day => {
+              const d = row[day];
+              if (d) {
+                const cell = document.querySelector(`td[data-period="${p}"][data-day="${day}"]`);
+                if (cell) {
+                  const sub = cell.querySelector('.course-title');
+                  const tea = cell.querySelector('.teacher-title');
+                  if (sub && d.subject) sub.textContent = d.subject.trim();
+                  if (tea && d.teacher) tea.textContent = d.teacher.trim();
+                }
+              }
+            });
+          }
+        });
+
+        sanitizeAllCells();
+        loadingModal.classList.add('hidden');
+        showModal('辨識成功', '課表照片已成功分析並自動填入表格！');
+      } catch (err) {
+        loadingModal.classList.add('hidden');
+        showModal('辨識失敗', `錯誤詳情：${err.message}`);
+      }
+    }
+
+    // 4. 文字清洗與防殘留機制
+    function sanitizeAllCells() {
+      const editableElements = document.querySelectorAll('.course-title, .teacher-title');
+      editableElements.forEach(el => {
+        const cleanText = (el.innerText || el.textContent || "").replace(/\u00a0/g, " ").trim();
+        if (el.children.length > 0 || el.innerHTML.includes('<') || el.textContent !== cleanText) {
+          el.innerHTML = '';
+          el.textContent = cleanText;
+        }
+      });
+    }
+
+    document.addEventListener('paste', (e) => {
+      if (e.target && e.target.isContentEditable) {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\u00a0/g, " ");
+        if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+          document.execCommand('insertText', false, text);
+        } else {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount) {
+            sel.deleteFromDocument();
+            sel.getRangeAt(0).insertNode(document.createTextNode(text));
+            sel.collapseToEnd();
+          }
+        }
+      }
+    });
+
+    document.addEventListener('focusout', (e) => {
+      if (e.target && e.target.isContentEditable) {
+        const cleanText = (e.target.innerText || e.target.textContent || "").replace(/\u00a0/g, " ").trim();
+        e.target.innerHTML = '';
+        e.target.textContent = cleanText;
+      }
+    });
+
+    function printTable() {
+      sanitizeAllCells();
+      window.print();
+    }
+    window.addEventListener('beforeprint', sanitizeAllCells);
+
+    // 5. 介面控制
+    function toggleDisplayMode() {
+      isSubjectOnly = !isSubjectOnly;
+      const body = document.body;
+      const modeBtnText = document.getElementById('modeText');
+
+      if (isSubjectOnly) {
+        body.classList.add('subject-only-mode');
+        modeBtnText.textContent = "雙行";
+        if (currentCourseSize < 28) adjustFontSize(4);
+      } else {
+        body.classList.remove('subject-only-mode');
+        modeBtnText.textContent = "純科目";
+        if (currentCourseSize > 26) adjustFontSize(-4);
+      }
+    }
+
+    function adjustFontSize(delta) {
+      currentCourseSize = Math.min(38, Math.max(16, currentCourseSize + delta));
+      const currentTeacherSize = Math.max(11, Math.round(currentCourseSize * 0.55));
+      document.documentElement.style.setProperty('--course-font-size', `${currentCourseSize}px`);
+      document.documentElement.style.setProperty('--teacher-font-size', `${currentTeacherSize}px`);
+      document.getElementById('fontSizeDisplay').textContent = `${currentCourseSize}px`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!isSubjectOnly && e.target.classList.contains('course-title') && e.key === 'Enter') {
+        e.preventDefault();
+        const teacherInput = e.target.parentElement.querySelector('.teacher-title');
+        if (teacherInput) teacherInput.focus();
+      }
+    });
+
+    function clearAllCells() {
+      document.querySelectorAll('.course-title').forEach(el => el.textContent = '');
+      document.querySelectorAll('.teacher-title').forEach(el => el.textContent = '');
+    }
+
+    function showModal(title, message) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').textContent = message;
+      document.getElementById('messageModal').classList.remove('hidden');
+    }
+    function closeModal() { document.getElementById('messageModal').classList.add('hidden'); }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>
