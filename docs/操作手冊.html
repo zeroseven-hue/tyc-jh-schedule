@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桃園國中智慧排課與調代課工作站 - 完整教學指引手冊</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+      background-color: #FFF9F2;
+      background-image: radial-gradient(#F3E1D5 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+      color: #3D2614;
+    }
+    .cute-card {
+      background: #FFFFFF;
+      border: 3px solid #8C5324;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px -5px rgba(140, 83, 36, 0.08);
+    }
+    .step-number {
+      background: #8C5324;
+      color: #FFF9F2;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .badge-free {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid #A5D6A7;
+    }
+    .badge-highlight {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #FDE68A;
+    }
+    code {
+      background: #F4E8DE;
+      color: #8C5324;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body class="py-10 px-4">
+
+  <div class="max-w-4xl mx-auto space-y-8">
+    
+    <!-- 頂部標題與快速導航 -->
+    <div class="cute-card p-8 text-center relative overflow-hidden">
+      <div class="absolute -right-6 -bottom-6 text-9xl opacity-10 select-none">🏫</div>
+      <span class="inline-block px-4 py-1.5 rounded-full text-xs font-bold badge-highlight mb-3">
+        🎒 專為教學組長量身打造 • 零基礎極速上手
+      </span>
+      <h1 class="text-3xl font-black text-[#8C5324] tracking-wide">
+        桃園國中 24 班智慧排課與調代課工作站
+      </h1>
+      <p class="text-sm text-gray-600 mt-2 font-medium">
+        完整排課流程、Google Colab 一鍵求解教學、調代課看板與私 LINE 溝通指南
+      </p>
+      
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
+        <a href="../index.html" class="px-5 py-2.5 rounded-xl bg-[#8C5324] text-white font-bold text-sm hover:bg-[#6D3F19] transition shadow-md flex items-center gap-2">
+          <span>🚀 開啟課表與調代課系統網頁</span>
+        </a>
+        <a href="https://zeroseven-hue.github.io/tyc-jh-schedule/" target="_blank" class="px-5 py-2.5 rounded-xl bg-white border-2 border-[#8C5324] text-[#8C5324] font-bold text-sm hover:bg-[#FFF9F2] transition flex items-center gap-2">
+          <span>🌐 開啟線上正式網址</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 核心心法：免費與免裝軟體 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="cute-card p-5 text-center">
+        <div class="text-3xl mb-2">💰</div>
+        <h3 class="font-bold text-base text-[#8C5324]">100% 完全免費</h3>
+        <p class="text-xs text-gray-600 mt-1">使用 Google 核心算力與前端技術，無須購買任何 API Key，排課無次數限制。</p>
+      </div>
+      <div class="cute-card p-5 text-center">
+        <div class="text-3xl mb-2">☁️</div>
+        <h3 class="font-bold text-base text-[#8C5324]">電腦免安裝 Python</h3>
+        <p class="text-xs text-gray-600 mt-1">直接在 Google 雲端 Colab 運算，任何一台文書電腦或筆電都能跑。</p>
+      </div>
+      <div class="cute-card p-5 text-center">
+        <div class="text-3xl mb-2">🔒</div>
+        <h3 class="font-bold text-base text-[#8C5324]">兼顧隱私與親切</h3>
+        <p class="text-xs text-gray-600 mt-1">不公開大群組宣傳代課，提供一鍵專屬數位看板與一鍵複製私 LINE 話語。</p>
+      </div>
+    </div>
+
+    <!-- 步驟一：準備配課資料 -->
+    <div class="cute-card p-6 md:p-8 space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="step-number">1</div>
+        <div>
+          <h2 class="text-xl font-black text-[#8C5324]">第一步：準備全校配課基本條件</h2>
+          <p class="text-xs text-gray-500">確認桃園國中專屬法規與學校三大特殊排課結構</p>
+        </div>
+      </div>
+      
+      <div class="bg-[#FFFDF8] border-2 border-[#EAD3BE] rounded-xl p-4 space-y-3 text-sm">
+        <div class="font-bold text-[#8C5324] flex items-center gap-2">
+          <span>📋 桃園國中 24 班排課三大事先確認：</span>
+        </div>
+        <ul class="list-disc list-inside space-y-1.5 text-xs text-gray-700 leading-relaxed">
+          <li><strong>導師與專任節數基準（桃園最新法規）</strong>：國文導師 10~11 節、其他領域導師 12~13 節；專任教師 16~18 節。</li>
+          <li><strong>特教資源班抽離同調</strong>：若 701 與 702 需同時抽離上數學，請在心中或設定上註記這兩班的數學課為同調群組。</li>
+          <li><strong>週三本土語分組跑班</strong>：閩南語、客家語兩班兩班一組跑班，時段固定鎖定在「星期三」。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 步驟二：Google Colab 一鍵運算 -->
+    <div class="cute-card p-6 md:p-8 space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="step-number">2</div>
+        <div>
+          <h2 class="text-xl font-black text-[#8C5324]">第二步：登入 Google Colab 進行一鍵智慧排課</h2>
+          <p class="text-xs text-gray-500">Google 雲端伺服器在 20~30 秒內自動算出最佳解</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div class="flex items-start gap-3">
+          <span class="font-bold text-[#8C5324] whitespace-nowrap">步驟 2-1：</span>
+          <div>打開瀏覽器，前往 <a href="https://colab.research.google.com/" target="_blank" class="text-blue-600 underline font-bold">Google Colab 網站</a> 並登入您的 Google 帳號。</div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="font-bold text-[#8C5324] whitespace-nowrap">步驟 2-2：</span>
+          <div>
+            點選「檔案」➜「上傳筆記本」，選取您電腦中的：<br>
+            <code>D:\antigravity\行政\01_國中智慧排課系統\colab\桃園國中智慧排課引擎.ipynb</code>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="font-bold text-[#8C5324] whitespace-nowrap">步驟 2-3：</span>
+          <div>
+            在 Colab 上方選單點選 <strong>「執行階段」 ➜ 「全部執行」</strong>（快捷鍵 <code>Ctrl + F9</code>）。
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="font-bold text-[#8C5324] whitespace-nowrap">步驟 2-4：</span>
+          <div>
+            程式會依序完成：<span class="font-bold text-emerald-700">安裝 OR-Tools ➜ 載入 24 班條件 ➜ 數學最佳化求解 ➜ 自動跳出下載 <code>timetable_data.json</code></span>。
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+        <span>💡</span>
+        <span>提示：解算過程中會自動替體育課避開第 5 節（炎熱高溫防呆），並保證資源班 2~3 班國英數絕對同時段！</span>
+      </div>
+    </div>
+
+    <!-- 步驟三：匯入系統與呈現 -->
+    <div class="cute-card p-6 md:p-8 space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="step-number">3</div>
+        <div>
+          <h2 class="text-xl font-black text-[#8C5324]">第三步：打開排課系統，切換風格與列印</h2>
+          <p class="text-xs text-gray-500">可愛日系風、簡約黑白風隨心所欲切換</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <p>雙擊點開 <code>D:\antigravity\行政\01_國中智慧排課系統\index.html</code>（或打開線上網址）：</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <strong>班級課表切換</strong>：下拉選單可即刻切換 701 到 908 全校 24 個班級。
+          </div>
+          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <strong>三種風格切換</strong>：右上角可隨時選擇「日系可愛暖棕 / 簡約黑白 / 莫蘭迪高雅」。
+          </div>
+          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <strong>一鍵列印最佳化</strong>：按下「🖨️ 列印課表」，自動隱藏所有按鈕，只印出工整無瑕的 A4 課表。
+          </div>
+          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <strong>一鍵 Email 寄發</strong>：點擊「✉️ 一鍵寄發課表」，自動喚起郵件軟體草擬給該班導師。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 步驟四：開學後每日調代課 -->
+    <div class="cute-card p-6 md:p-8 space-y-4">
+      <div class="flex items-center gap-4">
+        <div class="step-number">4</div>
+        <div>
+          <h2 class="text-xl font-black text-[#8C5324]">第四步：開學後調代課、數位看板與私 LINE 溝通</h2>
+          <p class="text-xs text-gray-500">不干擾全校大群組，最有溫度的行政溝通神器</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-sm">
+        <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-2">
+          <div class="font-bold text-emerald-900 flex items-center gap-2">
+            <span>💬 私 LINE 拜託代課神按鈕（0 API Key 耗費）：</span>
+          </div>
+          <p class="text-xs text-emerald-800 leading-relaxed">
+            在「今日調代課看板」中，只要點一下綠色的 <strong>【📋 複製私 LINE 訊息】</strong>，系統立刻將親切得體的話語存入剪貼簿：
+          </p>
+          <div class="p-2.5 bg-white rounded border border-emerald-300 text-xs text-gray-700 italic">
+            「李老師您好～不好意思打擾您！想跟您拜託一件事，這週因同仁公假研習，教學組有為您排定一節 803 數學 (第3節) 的代課。鐘點費都已經幫您造冊算好了，代課憑單也放在教務處您的信箱，真的非常謝謝老師的熱心幫忙，辛苦您了！🙏」
+          </div>
+          <p class="text-[11px] text-emerald-700">打開 LINE 私訊直接貼上送出，保護請假同仁隱私，代課老師收到也舒服！</p>
+        </div>
+
+        <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-200 space-y-1.5">
+          <div class="font-bold text-indigo-900 flex items-center gap-2">
+            <span>🔔 今日調代課專屬數位看板（方案 C）：</span>
+          </div>
+          <p class="text-xs text-indigo-800 leading-relaxed">
+            把系統網址釘選在全校教師群組的公告。老師早上到校點開看板就能自己看今天有沒有代課，巡堂人員也能一目了然，不需要任何人加官方帳號！
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部檔案清單對照 -->
+    <div class="cute-card p-6 text-xs text-gray-600 space-y-2">
+      <div class="font-bold text-[#8C5324] text-sm mb-1">📁 電腦端檔案目錄索引（D:\antigravity\行政\01_國中智慧排課系統）</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div>• <code>index.html</code>：系統主網頁（雙擊即可開啟）</div>
+        <div>• <code>colab\桃園國中智慧排課引擎.ipynb</code>：Colab 雲端求解筆記本</div>
+        <div>• <code>engine\scheduler.py</code>：後端 CP-SAT 演算法核心</div>
+        <div>• <code>docs\操作手冊.html</code>：本手冊（隨時可雙擊打開閱讀）</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
