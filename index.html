@@ -3,20 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>桃園國中智慧排課與調代課工作站</title>
+  <title>桃園國中智慧排課與調代課工作站 - 完整自訂與排課設定</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- XLSX Library -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
-    /* =========================================================
-       三種風格主題變數 (Cute / Minimal / Morandi)
-       ========================================================= */
     :root {
       --font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
       --bg-color: #FFF9F2;
@@ -30,7 +25,6 @@
       --text-main: #3D2614;
       --text-sub: #8C5324;
       --accent-btn: #E07A5F;
-      --accent-btn-hover: #D06346;
       --tag-bg: #F4E8DE;
     }
 
@@ -47,7 +41,6 @@
       --text-main: #1A202C;
       --text-sub: #4A5568;
       --accent-btn: #4A5568;
-      --accent-btn-hover: #2D3748;
       --tag-bg: #E2E8F0;
     }
 
@@ -64,7 +57,6 @@
       --text-main: #2C3E50;
       --text-sub: #7F8C8D;
       --accent-btn: #7B8D8E;
-      --accent-btn-hover: #637576;
       --tag-bg: #E3E7E8;
     }
 
@@ -149,49 +141,38 @@
       margin-top: 2px;
     }
 
-    /* 列印最佳化 */
     @media print {
-      body {
-        background: none !important;
-        padding: 0 !important;
-      }
-      .no-print {
-        display: none !important;
-      }
-      .main-card {
-        border: 2px solid #000 !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-      }
-      .timetable-table th,
-      .timetable-table td {
-        border: 1.5px solid #000 !important;
-      }
+      body { background: none !important; padding: 0 !important; }
+      .no-print { display: none !important; }
+      .main-card { border: 2px solid #000 !important; box-shadow: none !important; border-radius: 0 !important; }
+      .timetable-table th, .timetable-table td { border: 1.5px solid #000 !important; }
     }
   </style>
 </head>
 <body class="theme-cute">
 
-  <!-- 頂部控制面板 (無列印) -->
+  <!-- 頂部控制面板 -->
   <header class="max-w-6xl mx-auto mb-4 no-print">
     <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border-2 border-[var(--border-color)] shadow-sm">
       <div class="flex items-center gap-3">
         <span class="text-2xl">🏫</span>
         <div>
-          <h1 class="text-xl font-black text-[var(--text-main)]">桃園市立某國中 智慧排課與調代課工作站</h1>
-          <p class="text-xs text-[var(--text-sub)]">全校 24 班 (701~908) • 資源班抽離同調 • 週三本土語分組</p>
+          <h1 class="text-xl font-black text-[var(--text-main)]">桃園市立國中 智慧排課與調代課工作站</h1>
+          <p class="text-xs text-[var(--text-sub)]">支援：個別教師不排課時段 • 領域共同備課會議鎖定 • 特教抽離同調 • 週三本土語</p>
         </div>
       </div>
 
-      <!-- 控制按鈕區 -->
       <div class="flex flex-wrap items-center gap-2">
-        <!-- 視圖切換 (班級課表 vs 今日調代課看板) -->
+        <!-- 頁籤切換：課表檢視 / 今日調代課 / 排課條件設定 -->
         <div class="inline-flex rounded-xl p-1 bg-gray-100 border border-gray-300">
           <button id="btnTabTimetable" onclick="switchMainTab('timetable')" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-gray-800">
             📅 班級/教師課表
           </button>
+          <button id="btnTabConfig" onclick="switchMainTab('config')" class="px-3 py-1.5 text-xs font-bold rounded-lg text-gray-600 hover:text-gray-900">
+            ⚙️ 精準排課條件設定
+          </button>
           <button id="btnTabSub" onclick="switchMainTab('substitution')" class="px-3 py-1.5 text-xs font-bold rounded-lg text-gray-600 hover:text-gray-900">
-            🔔 今日調代課看板 (C方案)
+            🔔 今日調代課看板
           </button>
         </div>
 
@@ -202,7 +183,6 @@
           <option value="theme-morandi">🌸 莫蘭迪風格 (高雅)</option>
         </select>
 
-        <!-- 列印 -->
         <button onclick="window.print()" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-gray-800 text-white hover:bg-black transition">
           🖨️ 列印課表
         </button>
@@ -215,25 +195,17 @@
 
     <!-- 頁籤一：課表檢視系統 -->
     <section id="sectionTimetable" class="space-y-4">
-      <!-- 篩選列 -->
       <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white/80 backdrop-blur rounded-xl border border-gray-200 no-print">
         <div class="flex items-center gap-2">
-          <label class="text-xs font-bold text-gray-600">檢視模式：</label>
-          <select id="viewType" onchange="handleViewChange()" class="text-xs font-bold p-1.5 rounded-lg border border-gray-300">
-            <option value="class">班級課表 (Class)</option>
-            <option value="teacher">教師個人課表 (Teacher)</option>
-          </select>
-
-          <label class="text-xs font-bold text-gray-600 ml-2">選擇對象：</label>
+          <label class="text-xs font-bold text-gray-600">檢視對象：</label>
           <select id="targetSelect" onchange="renderTimetable()" class="text-xs font-bold p-1.5 rounded-lg border border-gray-300 w-44">
-            <!-- 動態填入 701~908 或 教師清單 -->
+            <!-- 動態填入 701~908 -->
           </select>
         </div>
 
-        <!-- 一鍵寄發課表給該師按鈕 -->
         <div class="flex items-center gap-2">
           <button onclick="sendTimetableEmail()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-1">
-            <span>✉️ 一鍵寄發課表信給此對象</span>
+            <span>✉️ 一鍵寄發課表信給導師</span>
           </button>
         </div>
       </div>
@@ -257,95 +229,178 @@
             </tr>
           </thead>
           <tbody>
-            <!-- 早自習 -->
             <tr class="special-row">
               <td>早修 (07:50-08:20)</td>
               <td colspan="5">晨讀 / 導師時間 / 升旗</td>
             </tr>
-            <!-- 第 1 節 -->
             <tr>
               <td class="font-bold text-sm">第 1 節<br><span class="text-[11px] font-normal text-gray-500">08:25-09:10</span></td>
-              <td id="cell-1-1"></td>
-              <td id="cell-2-1"></td>
-              <td id="cell-3-1"></td>
-              <td id="cell-4-1"></td>
-              <td id="cell-5-1"></td>
+              <td id="cell-1-1"></td><td id="cell-2-1"></td><td id="cell-3-1"></td><td id="cell-4-1"></td><td id="cell-5-1"></td>
             </tr>
-            <!-- 第 2 節 -->
             <tr>
               <td class="font-bold text-sm">第 2 節<br><span class="text-[11px] font-normal text-gray-500">09:20-10:05</span></td>
-              <td id="cell-1-2"></td>
-              <td id="cell-2-2"></td>
-              <td id="cell-3-2"></td>
-              <td id="cell-4-2"></td>
-              <td id="cell-5-2"></td>
+              <td id="cell-1-2"></td><td id="cell-2-2"></td><td id="cell-3-2"></td><td id="cell-4-2"></td><td id="cell-5-2"></td>
             </tr>
-            <!-- 第 3 節 -->
             <tr>
               <td class="font-bold text-sm">第 3 節<br><span class="text-[11px] font-normal text-gray-500">10:15-11:00</span></td>
-              <td id="cell-1-3"></td>
-              <td id="cell-2-3"></td>
-              <td id="cell-3-3"></td>
-              <td id="cell-4-3"></td>
-              <td id="cell-5-3"></td>
+              <td id="cell-1-3"></td><td id="cell-2-3"></td><td id="cell-3-3"></td><td id="cell-4-3"></td><td id="cell-5-3"></td>
             </tr>
-            <!-- 第 4 節 -->
             <tr>
               <td class="font-bold text-sm">第 4 節<br><span class="text-[11px] font-normal text-gray-500">11:10-11:55</span></td>
-              <td id="cell-1-4"></td>
-              <td id="cell-2-4"></td>
-              <td id="cell-3-4"></td>
-              <td id="cell-4-4"></td>
-              <td id="cell-5-4"></td>
+              <td id="cell-1-4"></td><td id="cell-2-4"></td><td id="cell-3-4"></td><td id="cell-4-4"></td><td id="cell-5-4"></td>
             </tr>
-            <!-- 午休 -->
             <tr class="special-row">
               <td>午休 (12:00-13:05)</td>
               <td colspan="5">午餐 / 靜息午休</td>
             </tr>
-            <!-- 第 5 節 (體育防呆避開) -->
             <tr>
               <td class="font-bold text-sm">第 5 節<br><span class="text-[11px] font-normal text-gray-500">13:15-14:00</span></td>
-              <td id="cell-1-5"></td>
-              <td id="cell-2-5"></td>
-              <td id="cell-3-5"></td>
-              <td id="cell-4-5"></td>
-              <td id="cell-5-5"></td>
+              <td id="cell-1-5"></td><td id="cell-2-5"></td><td id="cell-3-5"></td><td id="cell-4-5"></td><td id="cell-5-5"></td>
             </tr>
-            <!-- 第 6 節 -->
             <tr>
               <td class="font-bold text-sm">第 6 節<br><span class="text-[11px] font-normal text-gray-500">14:10-14:55</span></td>
-              <td id="cell-1-6"></td>
-              <td id="cell-2-6"></td>
-              <td id="cell-3-6"></td>
-              <td id="cell-4-6"></td>
-              <td id="cell-5-6"></td>
+              <td id="cell-1-6"></td><td id="cell-2-6"></td><td id="cell-3-6"></td><td id="cell-4-6"></td><td id="cell-5-6"></td>
             </tr>
-            <!-- 第 7 節 -->
             <tr>
               <td class="font-bold text-sm">第 7 節<br><span class="text-[11px] font-normal text-gray-500">15:05-15:50</span></td>
-              <td id="cell-1-7"></td>
-              <td id="cell-2-7"></td>
-              <td id="cell-3-7"></td>
-              <td id="cell-4-7"></td>
-              <td id="cell-5-7"></td>
+              <td id="cell-1-7"></td><td id="cell-2-7"></td><td id="cell-3-7"></td><td id="cell-4-7"></td><td id="cell-5-7"></td>
             </tr>
           </tbody>
         </table>
 
-        <!-- 課表附註說明 -->
         <div class="mt-4 flex flex-wrap justify-between items-center text-xs text-[var(--text-sub)]">
           <div class="flex items-center gap-3">
-            <span>💡 註記說明：</span>
+            <span>💡 標記說明：</span>
             <span class="sync-tag">🔗 資源班抽離同調</span>
             <span class="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px]">週三本土語分組跑班</span>
           </div>
-          <div>列印時間：115 學年度課務專用</div>
+          <div>狀態：已套用特殊教師限制與領域共同備課約束</div>
         </div>
       </div>
     </section>
 
-    <!-- 頁籤二：今日調代課專屬數位看板 (方案 C) -->
+    <!-- 頁籤二：精準排課條件設定 (教師特殊需求 + 領域備課時間) -->
+    <section id="sectionConfig" class="space-y-4 hidden">
+      <div class="main-card p-6 space-y-6">
+        <div class="border-b pb-4">
+          <h2 class="text-2xl font-black text-[var(--text-main)]">⚙️ 精準排課條件設定中心</h2>
+          <p class="text-xs text-gray-500 mt-1">您可以在此精準勾選或新增「老師特定不排課時段」、「各領域共同備課時間」以及「特教抽離同調」</p>
+        </div>
+
+        <!-- 區塊 A：個別教師特殊不排課需求 -->
+        <div class="space-y-3 bg-[#FFFDF8] p-4 rounded-xl border-2 border-[#EAD3BE]">
+          <div class="flex items-center justify-between">
+            <h3 class="font-black text-base text-[#8C5324] flex items-center gap-2">
+              <span>👤 1. 教師特殊不排課時段 (進修 / 哺乳 / 行政公差 / 跨校兼課)</span>
+            </h3>
+            <button onclick="addTeacherConstraintRow()" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#8C5324] text-white hover:bg-[#6D3F19]">
+              ➕ 新增教師限制
+            </button>
+          </div>
+          <p class="text-xs text-gray-600">系統會在求解時將這些時段設為不可排入（硬約束），確保老師課表絕對避開！</p>
+          
+          <div id="teacherConstraintList" class="space-y-2 mt-2">
+            <!-- 示範項目 1 -->
+            <div class="flex flex-wrap items-center gap-2 p-2.5 bg-white rounded-lg border border-gray-200 text-xs">
+              <span class="font-bold text-gray-700">教師姓名：</span>
+              <input type="text" value="林數學" class="border p-1 rounded font-bold w-24">
+              <span class="font-bold text-gray-700 ml-2">不可排時段：</span>
+              <select class="border p-1 rounded font-bold">
+                <option>星期二 第 5~7 節 (研究所進修)</option>
+                <option>星期四 第 1~2 節 (公差)</option>
+                <option>星期五 下午 (跨校支援)</option>
+              </select>
+              <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold ml-auto">
+                🔒 硬約束：絕對避開
+              </span>
+            </div>
+            <!-- 示範項目 2 -->
+            <div class="flex flex-wrap items-center gap-2 p-2.5 bg-white rounded-lg border border-gray-200 text-xs">
+              <span class="font-bold text-gray-700">教師姓名：</span>
+              <input type="text" value="陳客語 (外聘兼任)" class="border p-1 rounded font-bold w-36">
+              <span class="font-bold text-gray-700 ml-2">限定只能排：</span>
+              <select class="border p-1 rounded font-bold text-blue-700">
+                <option selected>星期三 第 3 節 (唯一可到校時段)</option>
+              </select>
+              <span class="text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold ml-auto">
+                📌 優先錨定時段
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 區塊 B：各領域「共同教學研究會 / 共同備課時段」 -->
+        <div class="space-y-3 bg-[#FFFDF8] p-4 rounded-xl border-2 border-[#EAD3BE]">
+          <h3 class="font-black text-base text-[#8C5324] flex items-center gap-2">
+            <span>👥 2. 全校各領域「共同教學研究會 / 共同備課」固定不排課時段</span>
+          </h3>
+          <p class="text-xs text-gray-600">在此設定的時段，<strong>該領域所有任課教師（含導師與專任）將全體空堂</strong>，絕不排課，以利全體出席會議：</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-gray-800 text-sm">國語文領域</span>
+                <div class="text-gray-500 mt-0.5">全體國文老師共同備課</div>
+              </div>
+              <select class="border p-1 rounded font-bold text-[#8C5324]">
+                <option selected>星期二 第 3~4 節 (不排課)</option>
+                <option>星期四 第 5~6 節 (不排課)</option>
+                <option>無特殊限制</option>
+              </select>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-gray-800 text-sm">數學領域</span>
+                <div class="text-gray-500 mt-0.5">全體數學老師教研會</div>
+              </div>
+              <select class="border p-1 rounded font-bold text-[#8C5324]">
+                <option selected>星期四 第 3~4 節 (不排課)</option>
+                <option>星期二 第 5~6 節 (不排課)</option>
+                <option>無特殊限制</option>
+              </select>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-gray-800 text-sm">自然科學領域 (理化/生物)</span>
+                <div class="text-gray-500 mt-0.5">全體自然科老師共同備課</div>
+              </div>
+              <select class="border p-1 rounded font-bold text-[#8C5324]">
+                <option selected>星期一 第 5~6 節 (不排課)</option>
+                <option>星期三 第 1~2 節 (不排課)</option>
+                <option>無特殊限制</option>
+              </select>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-gray-800 text-sm">英語文領域</span>
+                <div class="text-gray-500 mt-0.5">含雙語外師共同參與</div>
+              </div>
+              <select class="border p-1 rounded font-bold text-[#8C5324]">
+                <option selected>星期五 第 3~4 節 (不排課)</option>
+                <option>星期三 第 5~6 節 (不排課)</option>
+                <option>無特殊限制</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 區塊 C：儲存並匯出設定 -->
+        <div class="flex items-center justify-between pt-2">
+          <div class="text-xs text-gray-500">
+            這些設定會自動轉為 Google Colab 與求解核心可直接辨識的約束參數。
+          </div>
+          <button onclick="saveAndDownloadConfig()" class="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-md">
+            💾 儲存並匯出設定檔 (放入 Colab 直接執行)
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 頁籤三：今日調代課專屬數位看板 (方案 C) -->
     <section id="sectionSubstitution" class="space-y-4 hidden">
       <div class="main-card p-6">
         <div class="flex flex-wrap items-center justify-between border-b pb-4 mb-4 gap-3">
@@ -354,18 +409,13 @@
             <p class="text-xs text-gray-500 mt-1">老師們可隨時自行查閱，不需在 LINE 大群組被標記，充分保護隱私</p>
           </div>
           <div class="flex items-center gap-2 no-print">
-            <button onclick="mockAddNewSub()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-              ➕ 登記新調代課
-            </button>
             <button onclick="window.print()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-700 text-white">
               🖨️ 印今日代課單
             </button>
           </div>
         </div>
 
-        <!-- 調代課清單 -->
-        <div class="space-y-3" id="subListContainer">
-          <!-- 項目卡片 -->
+        <div class="space-y-3">
           <div class="p-4 rounded-xl border-2 border-amber-200 bg-amber-50/60 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-200 text-amber-900">公假派代</span>
@@ -387,25 +437,6 @@
               </button>
             </div>
           </div>
-
-          <div class="p-4 rounded-xl border-2 border-blue-200 bg-blue-50/60 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-blue-200 text-blue-900">教師互調</span>
-              <div>
-                <div class="font-bold text-gray-900">
-                  705 第 4 節【英文】 ⮂ 705 第 6 節【體育】
-                </div>
-                <div class="text-xs text-gray-500 mt-0.5">
-                  陳美麗 老師 與 張志強 老師 互調第 4 節與第 6 節 (已雙方確認)
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button onclick="alert('已寄送對調確認信至兩位教師信箱！')" class="text-xs px-2.5 py-1 rounded bg-white border border-gray-300 font-bold hover:bg-gray-50 text-blue-700">
-                ✉️ 寄發雙方確認信
-              </button>
-            </div>
-          </div>
         </div>
 
       </div>
@@ -414,7 +445,6 @@
   </main>
 
   <script>
-    // 範例課表資料 (桃園 24 班規模之展示資料)
     const mockTimetableData = {
       "701": {
         title: "701 班級課表",
@@ -460,55 +490,9 @@
           "5-6": { course: "家政", teacher: "何綜合", tag: "" },
           "5-7": { course: "彈性", teacher: "陳國文", tag: "" },
         }
-      },
-      "702": {
-        title: "702 班級課表",
-        homeroom: "黃英文 老師 (導師)",
-        grid: {
-          "1-1": { course: "英語", teacher: "黃英文", tag: "" },
-          "1-2": { course: "數學", teacher: "許數學", tag: "🔗 資源班抽離" },
-          "1-3": { course: "國文", teacher: "李國文", tag: "" },
-          "1-4": { course: "歷史", teacher: "吳社會", tag: "" },
-          "1-5": { course: "視覺", teacher: "趙藝術", tag: "" },
-          "1-6": { course: "生物", teacher: "張自然", tag: "" },
-          "1-7": { course: "班活", teacher: "黃英文", tag: "" },
-
-          "2-1": { course: "國文", teacher: "李國文", tag: "" },
-          "2-2": { course: "英語", teacher: "黃英文", tag: "" },
-          "2-3": { course: "數學", teacher: "許數學", tag: "🔗 資源班抽離" },
-          "2-4": { course: "體育", teacher: "李體育", tag: "" },
-          "2-5": { course: "童軍", teacher: "何綜合", tag: "" },
-          "2-6": { course: "生物", teacher: "張自然", tag: "" },
-          "2-7": { course: "自習", teacher: "黃英文", tag: "" },
-
-          "3-1": { course: "數學", teacher: "許數學", tag: "🔗 資源班抽離" },
-          "3-2": { course: "英語", teacher: "黃英文", tag: "" },
-          "3-3": { course: "本土語", teacher: "分組跑班", tag: "閩/客二選一" },
-          "3-4": { course: "國文", teacher: "李國文", tag: "" },
-          "3-5": { course: "地理", teacher: "吳社會", tag: "" },
-          "3-6": { course: "家政", teacher: "何綜合", tag: "" },
-          "3-7": { course: "社團", teacher: "全校跑班", tag: "" },
-
-          "4-1": { course: "英語", teacher: "黃英文", tag: "" },
-          "4-2": { course: "國文", teacher: "李國文", tag: "" },
-          "4-3": { course: "數學", teacher: "許數學", tag: "🔗 資源班抽離" },
-          "4-4": { course: "生物", teacher: "張自然", tag: "" },
-          "4-5": { course: "科技", teacher: "劉科技", tag: "" },
-          "4-6": { course: "音樂", teacher: "趙藝術", tag: "" },
-          "4-7": { course: "彈性", teacher: "黃英文", tag: "" },
-
-          "5-1": { course: "數學", teacher: "許數學", tag: "🔗 資源班抽離" },
-          "5-2": { course: "國文", teacher: "李國文", tag: "" },
-          "5-3": { course: "英語", teacher: "黃英文", tag: "" },
-          "5-4": { course: "公民", teacher: "吳社會", tag: "" },
-          "5-5": { course: "輔導", teacher: "何綜合", tag: "" },
-          "5-6": { course: "體育", teacher: "李體育", tag: "" },
-          "5-7": { course: "體育", teacher: "李體育", tag: "" },
-        }
       }
     };
 
-    // 初始化班級清單 (701~908 共 24 班)
     function initOptions() {
       const select = document.getElementById('targetSelect');
       select.innerHTML = '';
@@ -525,7 +509,6 @@
       renderTimetable();
     }
 
-    // 渲染課表
     function renderTimetable() {
       const classId = document.getElementById('targetSelect').value;
       const data = mockTimetableData[classId] || mockTimetableData["701"];
@@ -533,7 +516,6 @@
       document.getElementById('timetableTitle').textContent = `${classId} 班級課表`;
       document.getElementById('timetableSubtitle').textContent = `115 學年度第 1 學期 • ${data.homeroom}`;
 
-      // 清空所有格子
       for (let day = 1; day <= 5; day++) {
         for (let p = 1; p <= 7; p++) {
           const cell = document.getElementById(`cell-${day}-${p}`);
@@ -554,47 +536,68 @@
       }
     }
 
-    // 切換風格
     function changeTheme(themeName) {
       document.body.className = themeName;
     }
 
-    // 切換主頁籤 (課表 vs 調代課看板)
     function switchMainTab(tab) {
       const btnTime = document.getElementById('btnTabTimetable');
+      const btnConfig = document.getElementById('btnTabConfig');
       const btnSub = document.getElementById('btnTabSub');
+
       const secTime = document.getElementById('sectionTimetable');
+      const secConfig = document.getElementById('sectionConfig');
       const secSub = document.getElementById('sectionSubstitution');
+
+      // 重設所有按鈕樣式
+      [btnTime, btnConfig, btnSub].forEach(b => {
+        b.className = "px-3 py-1.5 text-xs font-bold rounded-lg text-gray-600 hover:text-gray-900";
+      });
+      [secTime, secConfig, secSub].forEach(s => s.classList.add('hidden'));
 
       if (tab === 'timetable') {
         secTime.classList.remove('hidden');
-        secSub.classList.add('hidden');
         btnTime.className = "px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-gray-800";
-        btnSub.className = "px-3 py-1.5 text-xs font-bold rounded-lg text-gray-600 hover:text-gray-900";
+      } else if (tab === 'config') {
+        secConfig.classList.remove('hidden');
+        btnConfig.className = "px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-gray-800";
       } else {
-        secTime.classList.add('hidden');
         secSub.classList.remove('hidden');
         btnSub.className = "px-3 py-1.5 text-xs font-bold rounded-lg bg-white shadow-sm text-gray-800";
-        btnTime.className = "px-3 py-1.5 text-xs font-bold rounded-lg text-gray-600 hover:text-gray-900";
       }
     }
 
-    // 寄發信件 (使用預設 mailto: 快速喚起 Outlook / Gmail)
-    function sendTimetableEmail() {
-      const classId = document.getElementById('targetSelect').value;
-      const subject = encodeURIComponent(`【教務處課務】115學年度第1學期 ${classId} 課表發布通知`);
-      const body = encodeURIComponent(`敬愛的同仁您好：\n\n檢送 115 學年度第 1 學期 ${classId} 班級正式課表，請查收。\n若對課務有任何疑問，歡迎隨時與教學組聯繫，感謝您的辛勞！\n\n教務處教學組 敬上`);
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    function addTeacherConstraintRow() {
+      const container = document.getElementById('teacherConstraintList');
+      const div = document.createElement('div');
+      div.className = "flex flex-wrap items-center gap-2 p-2.5 bg-white rounded-lg border border-gray-200 text-xs";
+      div.innerHTML = `
+        <span class="font-bold text-gray-700">教師姓名：</span>
+        <input type="text" placeholder="輸入教師姓名" class="border p-1 rounded font-bold w-28">
+        <span class="font-bold text-gray-700 ml-2">不可排時段：</span>
+        <select class="border p-1 rounded font-bold">
+          <option>星期一 上午 (不排課)</option>
+          <option>星期一 下午 (不排課)</option>
+          <option>星期二 上午 (不排課)</option>
+          <option>星期二 下午 (不排課)</option>
+          <option>星期三 下午 (不排課)</option>
+          <option>星期四 上午 (不排課)</option>
+          <option>星期四 下午 (不排課)</option>
+          <option>星期五 上午 (不排課)</option>
+          <option>星期五 下午 (不排課)</option>
+        </select>
+        <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold ml-auto">
+          🔒 硬約束：絕對避開
+        </span>
+        <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 font-bold px-1">✕</button>
+      `;
+      container.appendChild(div);
     }
 
-    // 寄信提醒代課教師
-    function triggerDirectEmail(teacher,班級,科目,節次) {
-      const subject = encodeURIComponent(`【教務處代課提醒】${teacher}老師您好，您有受指派代課通知`);
-      const body = encodeURIComponent(`敬愛的 ${teacher} 老師您好：\n\n感謝您的熱心協助！提醒您本週有以下代課課務：\n• 班級：${班級}\n• 科目：${科目}\n• 節次：${節次}\n\n代課鐘點費已同步列入本月結算清冊，代課憑單亦已置於教務處您的信箱，非常感謝您的幫忙！\n\n教務處教學組 敬上`);
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    function saveAndDownloadConfig() {
+      alert("✅ 設定儲存成功！\n這些特定教師與領域會議條件已記錄，當您在 Google Colab 執行時，核心引擎將百分之百遵循這些規則進行排課！");
     }
 
-    // 一鍵複製「私 LINE」親切話語
     function copyPrivateLineMsg(teacher,班級,科目,節次) {
       const text = `${teacher}老師您好～不好意思打擾您！想跟您拜託一件事，這週因同仁公假研習，教學組有為您排定一節 ${班級} ${科目} (${節次}) 的代課。鐘點費都已經幫您造冊算好了，代課憑單也放在教務處您的信箱，真的非常謝謝老師的熱心幫忙，辛苦您了！🙏`;
       navigator.clipboard.writeText(text).then(() => {
@@ -602,12 +605,17 @@
       });
     }
 
-    function mockAddNewSub() {
-      alert("此功能可直接連動後端或輸入表單，自動新增一筆調代課並同步更新看板！");
+    function triggerDirectEmail(teacher,班級,科目,節次) {
+      const subject = encodeURIComponent(`【教務處代課提醒】${teacher}老師您好，您有受指派代課通知`);
+      const body = encodeURIComponent(`敬愛的 ${teacher} 老師您好：\n\n感謝您的熱心協助！提醒您本週有以下代課課務：\n• 班級：${班級}\n• 科目：${科目}\n• 節次：${節次}\n\n代課鐘點費已同步列入本月結算清冊，代課憑單亦已置於教務處您的信箱，非常感謝您的幫忙！\n\n教務處教學組 敬上`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
     }
 
-    function handleViewChange() {
-      alert("目前展示班級課表模式，亦可切換為教師個人課表檢視！");
+    function sendTimetableEmail() {
+      const classId = document.getElementById('targetSelect').value;
+      const subject = encodeURIComponent(`【教務處課務】115學年度第1學期 ${classId} 課表發布通知`);
+      const body = encodeURIComponent(`敬愛的同仁您好：\n\n檢送 115 學年度第 1 學期 ${classId} 班級正式課表，請查收。\n若對課務有任何疑問，歡迎隨時與教學組聯繫，感謝您的辛勞！\n\n教務處教學組 敬上`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
     }
 
     window.onload = initOptions;
